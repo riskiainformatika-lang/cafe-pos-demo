@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Titik Temu Coffee & Eatery - Digital Self-Order</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <link rel="stylesheet" href="css/style.css">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            roast: { 950: '#140f0c', 900: '#1c1410', 800: '#2e211a', 700: '#4a362b' },
+            crema: { 50: '#faf7f2', 100: '#f5efe6', 200: '#eae0d0', 300: '#dbc8b0' },
+            amberGold: '#d9a35f'
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="bg-crema-50 text-roast-900 pb-32">
+
+  <!-- ================= HEADER UTAMA TOKO ================= -->
+  <header class="glass-nav sticky top-0 z-40 text-crema-50 px-4 py-3 shadow-md">
+    <div class="max-w-4xl mx-auto flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-2xl bg-amberGold/20 border border-amberGold/40 flex items-center justify-center text-amberGold shadow-inner">
+          <i data-lucide="coffee" class="w-5 h-5"></i>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="font-extrabold text-sm sm:text-base tracking-tight text-white">Titik Temu Coffee</h1>
+            <span id="badge-status-toko" class="bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 text-[9px] font-black px-2 py-0.5 rounded-full">BUKA</span>
+          </div>
+          <p class="text-[11px] text-crema-200">Specialty Coffee • Artisan Pastry • Rice Bowl</p>
+        </div>
+      </div>
+      <!-- Indikator Waktu Operasional -->
+      <div class="text-right">
+        <span class="text-[10px] text-crema-300 block">Jam Operasional</span>
+        <span class="text-xs font-bold text-amberGold" id="txt-store-hours">08:00 - 22:00</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- PENGUMUMAN STATUS TOKO TUTUP -->
+  <div id="closed-banner" class="hidden bg-rose-600 text-white text-center py-2 px-4 text-xs font-bold shadow">
+    ⚠️ Mohon maaf, pemesanan ditutup sementara oleh kasir. Anda tetap bisa melihat daftar menu.
+  </div>
+
+  <!-- ================= PEMILIHAN LAYANAN & POSISI MEJA ================= -->
+  <section class="max-w-4xl mx-auto px-4 mt-3">
+    <div class="bg-white p-3 rounded-2xl border border-crema-200 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+      <div class="flex items-center gap-2.5">
+        <div class="w-8 h-8 rounded-xl bg-amberGold/15 text-roast-900 flex items-center justify-center">
+          <i data-lucide="map-pin" class="w-4 h-4"></i>
+        </div>
+        <div>
+          <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Opsi Layanan</p>
+          <p class="text-xs font-extrabold text-roast-900" id="current-service-indicator">Makan di Tempat (Dine-In)</p>
+        </div>
+      </div>
+      <div class="flex gap-1.5">
+        <button onclick="setServiceType('dine_in')" id="btn-type-dinein" class="flex-1 sm:flex-none px-3.5 py-1.5 rounded-xl text-xs font-bold bg-roast-900 text-white shadow transition">🍽️ Meja Dine-In</button>
+        <button onclick="setServiceType('takeaway')" id="btn-type-takeaway" class="flex-1 sm:flex-none px-3.5 py-1.5 rounded-xl text-xs font-bold bg-crema-100 text-roast-900 hover:bg-crema-200 transition">🛍️ Bawa Pulang</button>
+        <button onclick="setServiceType('delivery')" id="btn-type-delivery" class="flex-1 sm:flex-none px-3.5 py-1.5 rounded-xl text-xs font-bold bg-crema-100 text-roast-900 hover:bg-crema-200 transition">🛵 Antar Rumah</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= SEARCH & FILTER KATEGORI ================= -->
+  <section class="max-w-4xl mx-auto px-4 mt-3 sticky top-14 z-30 bg-crema-50/95 backdrop-blur-md py-2 space-y-2">
+    <div class="relative">
+      <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3.5 top-3"></i>
+      <input type="text" id="search-box" placeholder="Cari: 'kopi aren', 'croissant', 'matcha', 'spaghetti'..." 
+             class="w-full pl-10 pr-10 py-2.5 bg-white border border-crema-200 rounded-2xl text-xs sm:text-sm font-medium focus:ring-2 focus:ring-amberGold focus:outline-none shadow-sm">
+      <button onclick="resetSearch()" id="btn-clear-search" class="hidden absolute right-3 top-2 text-slate-400 hover:text-slate-700 font-bold p-1 text-sm">✕</button>
+    </div>
+    <div id="filter-categories" class="flex gap-1.5 overflow-x-auto hide-scrollbar pb-1"></div>
+  </section>
+
+  <!-- ================= GRID MENU KATALOG ================= -->
+  <main class="max-w-4xl mx-auto px-4 mt-2">
+    <div class="flex justify-between items-center mb-2.5">
+      <span class="text-xs font-bold text-slate-500 uppercase tracking-wider" id="lbl-catalog-count">Semua Menu</span>
+      <div class="flex gap-1 text-[11px]">
+        <button onclick="quickFilter('best_seller')" class="bg-amber-100 hover:bg-amber-200 text-amber-900 font-extrabold px-2.5 py-1 rounded-xl transition">🔥 Best Seller</button>
+        <button onclick="quickFilter('kopi')" class="bg-orange-100 hover:bg-orange-200 text-orange-900 font-extrabold px-2.5 py-1 rounded-xl transition">☕ Kopi</button>
+        <button onclick="quickFilter('makan')" class="bg-emerald-100 hover:bg-emerald-200 text-emerald-900 font-extrabold px-2.5 py-1 rounded-xl transition">🍛 Makanan</button>
+      </div>
+    </div>
+    <div id="product-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 gap-3"></div>
+  </main>
+
+  <!-- ================= FLOATING CHECKOUT BAR ================= -->
+  <div id="floating-bar" class="fixed bottom-0 left-0 right-0 p-3 sm:p-4 z-40 hidden">
+    <div class="max-w-4xl mx-auto">
+      <button onclick="openCheckoutModal()" class="w-full bg-roast-950 hover:bg-black text-crema-50 p-3.5 sm:p-4 rounded-2xl shadow-2xl flex items-center justify-between border border-amberGold/30 transition active:scale-[0.99]">
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 rounded-xl bg-amberGold text-roast-950 flex items-center justify-center font-black text-sm shadow" id="ui-cart-qty">0</div>
+          <div class="text-left">
+            <span class="text-[10px] text-crema-300 uppercase tracking-widest block font-bold">Total Pembayaran</span>
+            <span class="text-base sm:text-lg font-black text-amberGold" id="ui-cart-total">Rp0</span>
+          </div>
+        </div>
+        <div class="flex items-center gap-1.5 bg-amberGold text-roast-950 font-extrabold text-xs sm:text-sm px-4 py-2.5 rounded-xl shadow">
+          <span>Tinjau Pesanan</span>
+          <i data-lucide="arrow-right" class="w-4 h-4"></i>
+        </div>
+      </button>
+    </div>
+  </div>
+
+  <!-- ================= MODAL KUSTOMISASI MENU ================= -->
+  <div id="modal-item-custom" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-end sm:items-center justify-center p-0 sm:p-4">
+    <div class="bg-white w-full max-w-sm rounded-t-3xl sm:rounded-3xl p-5 space-y-4 shadow-2xl">
+      <div class="flex justify-between items-start border-b pb-3">
+        <div>
+          <h3 class="font-extrabold text-sm text-roast-900" id="mod-cust-title">Kustomisasi Menu</h3>
+          <p class="text-xs text-amberGold font-black mt-0.5" id="mod-cust-price">Rp0</p>
+        </div>
+        <button onclick="closeCustomModal()" class="text-slate-400 hover:text-slate-700 text-xl font-bold">&times;</button>
+      </div>
+
+      <div class="space-y-3 text-xs">
+        <div id="group-opt-temp">
+          <label class="font-bold text-slate-700 block mb-1.5">Pilihan Suhu:</label>
+          <div class="grid grid-cols-2 gap-2">
+            <label class="border border-crema-200 rounded-xl p-2.5 flex items-center justify-center gap-2 cursor-pointer [&:has(input:checked)]:border-roast-900 [&:has(input:checked)]:bg-roast-900 [&:has(input:checked)]:text-white font-bold">
+              <input type="radio" name="opt-temp" value="Dingin (Ice)" checked class="hidden"> 🧊 Dingin (Ice)
+            </label>
+            <label class="border border-crema-200 rounded-xl p-2.5 flex items-center justify-center gap-2 cursor-pointer [&:has(input:checked)]:border-roast-900 [&:has(input:checked)]:bg-roast-900 [&:has(input:checked)]:text-white font-bold">
+              <input type="radio" name="opt-temp" value="Panas (Hot)" class="hidden"> ☕ Panas (Hot)
+            </label>
+          </div>
+        </div>
+
+        <div id="group-opt-sugar">
+          <label class="font-bold text-slate-700 block mb-1.5">Tingkat Manis (Sugar Level):</label>
+          <div class="grid grid-cols-3 gap-1.5">
+            <label class="border border-crema-200 rounded-xl p-2 text-center cursor-pointer [&:has(input:checked)]:border-roast-900 [&:has(input:checked)]:bg-roast-900 [&:has(input:checked)]:text-white font-bold">
+              <input type="radio" name="opt-sugar" value="Normal Sugar (100%)" checked class="hidden"> Normal
+            </label>
+            <label class="border border-crema-200 rounded-xl p-2 text-center cursor-pointer [&:has(input:checked)]:border-roast-900 [&:has(input:checked)]:bg-roast-900 [&:has(input:checked)]:text-white font-bold">
+              <input type="radio" name="opt-sugar" value="Less Sugar (50%)" class="hidden"> Less (50%)
+            </label>
+            <label class="border border-crema-200 rounded-xl p-2 text-center cursor-pointer [&:has(input:checked)]:border-roast-900 [&:has(input:checked)]:bg-roast-900 [&:has(input:checked)]:text-white font-bold">
+              <input type="radio" name="opt-sugar" value="No Sugar (0%)" class="hidden"> No Sugar
+            </label>
+          </div>
+        </div>
+
+        <div>
+          <label class="font-bold text-slate-700 block mb-1">Catatan Tambahan:</label>
+          <input type="text" id="opt-notes" placeholder="Contoh: Sambal dipisah, saus ekstra" class="w-full p-2 border border-crema-200 rounded-xl text-xs">
+        </div>
+      </div>
+
+      <button onclick="commitCustomAddToCart()" class="w-full bg-roast-950 text-crema-50 font-extrabold py-3 rounded-xl text-xs shadow-lg">
+        + Tambah ke Pesanan
+      </button>
+    </div>
+  </div>
+
+  <!-- ================= MODAL CHECKOUT & KONTAK ================= -->
+  <div id="modal-checkout" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-end sm:items-center justify-center p-0 sm:p-4">
+    <div class="bg-white w-full max-w-lg rounded-t-3xl sm:rounded-3xl max-h-[92vh] flex flex-col overflow-hidden shadow-2xl">
+      <div class="px-5 py-3.5 border-b flex justify-between items-center bg-crema-100">
+        <div>
+          <h2 class="font-extrabold text-base text-roast-900">Rincian Pemesanan Mandiri</h2>
+          <p class="text-[11px] text-slate-500" id="checkout-service-subtitle">Layanan: Makan di Tempat</p>
+        </div>
+        <button onclick="closeCheckoutModal()" class="text-slate-400 hover:text-slate-700 text-2xl font-bold">&times;</button>
+      </div>
+
+      <div class="p-5 overflow-y-auto space-y-4 flex-1 text-xs">
+        <div>
+          <h3 class="font-bold text-slate-400 uppercase tracking-wider text-[10px] mb-2">Item Terpilih:</h3>
+          <div id="checkout-items-list" class="space-y-2 divide-y divide-slate-100"></div>
+        </div>
+
+        <!-- Opsi Nomor Meja / Alamat -->
+        <div class="p-3 bg-crema-100 rounded-2xl border border-crema-200 space-y-2">
+          <div id="box-input-table">
+            <label class="font-bold text-roast-900 block mb-1">Nomor Meja Anda *</label>
+            <input type="number" id="inp-table-no" placeholder="Contoh: 04" class="w-full p-2.5 bg-white border border-crema-200 rounded-xl text-sm font-extrabold focus:ring-2 focus:ring-roast-900">
+            <p class="text-[10px] text-slate-500 mt-1">Pesanan akan langsung diantarkan oleh staf ke meja Anda.</p>
+          </div>
+          <div id="box-input-delivery" class="hidden space-y-2">
+            <div>
+              <label class="font-bold text-roast-900 block mb-1">Zona Pengantaran</label>
+              <select id="sel-delivery-zone" onchange="recalculateTotals()" class="w-full p-2.5 bg-white border border-crema-200 rounded-xl text-xs"></select>
+            </div>
+            <div>
+              <label class="font-bold text-roast-900 block mb-1">Alamat Lengkap Pengiriman *</label>
+              <textarea id="inp-deliv-address" rows="2" placeholder="Nama jalan, nomor rumah/kantor, patokan..." class="w-full p-2 bg-white border border-crema-200 rounded-xl text-xs"></textarea>
+            </div>
+          </div>
+        </div>
+
+        <!-- Data Kontak (Email & WA Wajib) -->
+        <div class="space-y-2">
+          <h3 class="font-bold text-slate-400 uppercase tracking-wider text-[10px]">Informasi Pemesan:</h3>
+          <div>
+            <label class="font-bold text-slate-700 block mb-1">Nama Lengkap *</label>
+            <input type="text" id="inp-cust-name" placeholder="Nama Anda" class="w-full p-2 border border-crema-200 rounded-xl">
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="font-bold text-slate-700 block mb-1">Nomor WhatsApp *</label>
+              <input type="tel" id="inp-cust-phone" placeholder="0812xxxxxxxx" class="w-full p-2 border border-crema-200 rounded-xl">
+            </div>
+            <div>
+              <label class="font-bold text-slate-700 block mb-1">Alamat Email *</label>
+              <input type="email" id="inp-cust-email" placeholder="nama@email.com" class="w-full p-2 border border-crema-200 rounded-xl">
+            </div>
+          </div>
+        </div>
+
+        <!-- Pilihan Bayar Non-Tunai Wajib -->
+        <div>
+          <label class="font-bold text-slate-700 block mb-1.5">Metode Pembayaran (Wajib Lunas Non-Tunai):</label>
+          <div class="grid grid-cols-2 gap-2">
+            <label class="border border-crema-200 rounded-2xl p-3 flex items-center gap-2 cursor-pointer [&:has(input:checked)]:border-roast-900 [&:has(input:checked)]:bg-roast-950 [&:has(input:checked)]:text-white">
+              <input type="radio" name="pay-method" value="qris" checked class="hidden">
+              <span class="text-lg">📲</span>
+              <div>
+                <p class="font-black text-xs">QRIS Dinamis</p>
+                <p class="text-[10px] opacity-75">BCA, Gopay, OVO, Dana</p>
+              </div>
+            </label>
+            <label class="border border-crema-200 rounded-2xl p-3 flex items-center gap-2 cursor-pointer [&:has(input:checked)]:border-roast-900 [&:has(input:checked)]:bg-roast-950 [&:has(input:checked)]:text-white">
+              <input type="radio" name="pay-method" value="transfer" class="hidden">
+              <span class="text-lg">🏦</span>
+              <div>
+                <p class="font-black text-xs">Transfer Bank</p>
+                <p class="text-[10px] opacity-75">BCA / Mandiri</p>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <!-- Voucher Promo -->
+        <div class="flex gap-2">
+          <input type="text" id="inp-promo-code" placeholder="Kode Promo: COFFEEFIRST" class="flex-1 p-2 border border-crema-200 rounded-xl uppercase text-xs">
+          <button onclick="applyPromoCode()" class="bg-slate-800 text-white font-bold px-4 rounded-xl text-xs">Pakai</button>
+        </div>
+        <p id="msg-promo-feedback" class="text-[10px] font-bold hidden"></p>
+
+        <!-- Rincian Biaya -->
+        <div class="bg-slate-50 p-3.5 rounded-2xl border space-y-1.5">
+          <div class="flex justify-between"><span>Subtotal:</span><span id="txt-subtotal" class="font-bold">Rp0</span></div>
+          <div class="flex justify-between text-emerald-700 hidden" id="row-discount"><span>Diskon Promo:</span><span id="txt-discount">-Rp0</span></div>
+          <div class="flex justify-between"><span>Biaya Layanan / Ongkir:</span><span id="txt-service-fee" class="font-bold">Rp0</span></div>
+          <div class="flex justify-between text-sm font-black text-roast-900 pt-2 border-t">
+            <span>TOTAL PEMBAYARAN:</span>
+            <span id="txt-grand-total" class="text-amberGold text-base">Rp0</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="p-4 bg-crema-100 border-t">
+        <button onclick="launchPaymentGatewayModal()" class="w-full bg-roast-950 hover:bg-black text-crema-50 font-extrabold py-3.5 rounded-2xl shadow-xl flex items-center justify-center gap-2">
+          <span>Lanjut ke Pembayaran QRIS / Bank</span>
+          <i data-lucide="shield-check" class="w-4 h-4 text-emerald-400"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= PAYMENT GATEWAY POPUP ================= -->
+  <div id="modal-pay-gate" class="fixed inset-0 bg-black/75 backdrop-blur-md z-50 hidden flex items-center justify-center p-3">
+    <div class="bg-white w-full max-w-sm rounded-3xl p-5 text-center space-y-3.5 shadow-2xl">
+      <div class="flex justify-between items-center border-b pb-2">
+        <span class="text-xs font-bold text-slate-400 uppercase tracking-widest">Gateway Pembayaran</span>
+        <button onclick="closePayGateModal()" class="text-slate-400 hover:text-slate-700 text-xl font-bold">&times;</button>
+      </div>
+
+      <div>
+        <p class="text-[11px] text-slate-500">Nominal Transfer Pas:</p>
+        <p class="text-2xl font-black text-roast-950 tracking-tight" id="pay-nominal-display">Rp0</p>
+      </div>
+
+      <div id="box-pay-qris" class="space-y-2">
+        <div class="p-2.5 bg-white border-2 border-dashed border-amberGold/50 rounded-2xl inline-block shadow-inner">
+          <img id="img-qris-target" src="" alt="QRIS Toko" class="w-48 h-48 object-contain mx-auto rounded-lg">
+        </div>
+        <p class="text-[10px] text-slate-500">Scan QRIS menggunakan mobile banking atau e-wallet apa saja.</p>
+      </div>
+
+      <div id="box-pay-transfer" class="hidden bg-crema-100 p-3 rounded-2xl border text-left space-y-1 text-xs">
+        <p class="font-extrabold text-roast-900" id="bank-title-display">Bank Central Asia (BCA)</p>
+        <div class="flex items-center justify-between bg-white p-2 border rounded-xl">
+          <span class="font-mono font-bold text-sm" id="bank-acc-display">8415-2910-29</span>
+          <button onclick="copyBankAcc()" class="bg-roast-950 text-crema-50 text-[10px] font-bold px-2.5 py-1 rounded-lg">Salin</button>
+        </div>
+        <p class="text-[10px] text-slate-500">Atas Nama: <strong id="bank-holder-display">Titik Temu Coffee</strong></p>
+      </div>
+
+      <div class="pt-2 border-t text-left space-y-1">
+        <label class="text-[11px] font-bold text-slate-700">Unggah Bukti Pembayaran / Struk Transfer *</label>
+        <input type="file" id="inp-receipt-file" accept="image/*" class="w-full text-xs text-slate-500 file:mr-2 file:py-1 file:px-2.5 file:rounded-lg file:border-0 file:text-[11px] file:font-bold file:bg-roast-950 file:text-white">
+      </div>
+
+      <button onclick="finalizeCustomerOrder()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold py-3 rounded-xl text-xs shadow-lg transition">
+        Saya Sudah Bayar (Kirim ke Dapur)
+      </button>
+    </div>
+  </div>
+
+  <!-- ================= LAYAR SUKSES STATUS LIVE ================= -->
+  <div id="modal-success" class="fixed inset-0 bg-black/80 backdrop-blur-md z-50 hidden flex items-center justify-center p-3">
+    <div class="bg-white w-full max-w-sm rounded-3xl p-6 text-center space-y-3 shadow-2xl">
+      <div class="w-14 h-14 bg-emerald-100 text-emerald-700 rounded-2xl flex items-center justify-center mx-auto text-2xl font-black">✓</div>
+      <div>
+        <h3 class="text-base font-extrabold text-roast-900">Pesanan Diterima Dapur!</h3>
+        <p class="text-xs text-slate-500 mt-0.5">Kode Antrean: <strong class="text-roast-950 font-mono text-sm" id="lbl-success-order-id">#ORD-000</strong></p>
+      </div>
+
+      <div class="bg-crema-100 p-3 rounded-2xl border text-left text-xs space-y-1.5">
+        <div class="flex justify-between">
+          <span class="text-slate-500">Lokasi Antar:</span>
+          <span class="font-bold" id="lbl-success-location">Meja 04</span>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-slate-500">Status Pesanan:</span>
+          <span class="bg-amber-100 text-amber-900 font-black px-2 py-0.5 rounded text-[10px]" id="lbl-live-order-status">Menunggu Verifikasi Dapur</span>
+        </div>
+      </div>
+
+      <p class="text-[11px] text-slate-400">Bukti pembayaran Anda sedang diverifikasi. Barista segera menyiapkan pesanan.</p>
+      <button onclick="closeSuccessModal()" class="w-full bg-roast-950 text-crema-50 font-bold py-2.5 rounded-xl text-xs">
+        Pesan Menu Tambahan
+      </button>
+    </div>
+  </div>
+
+  <!-- ================= FOOTER DENGAN TOMBOL ADMIN RAHASIA ================= -->
+  <footer class="max-w-4xl mx-auto px-4 mt-12 text-center text-xs text-slate-400 space-y-2 border-t pt-6">
+    <p>© 2026 Titik Temu Coffee & Eatery. All rights reserved.</p>
+    <div>
+      <!-- Tombol Admin Tersembunyi (Discreet) -->
+      <a href="admin.html" class="inline-flex items-center gap-1 text-[11px] text-slate-400 hover:text-amberGold transition">
+        <i data-lucide="lock" class="w-3 h-3"></i>
+        <span>Portal Staf & Kasir</span>
+      </a>
+    </div>
+  </footer>
+
+  <script src="js/app.js"></script>
+</body>
+</html>

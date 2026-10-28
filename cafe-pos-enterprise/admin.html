@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>KDS Kitchen & Smart Cashier - Titik Temu</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="bg-slate-900 text-slate-100 pb-20">
+
+  <!-- ================= TOPBAR MONITOR ================= -->
+  <header class="bg-slate-950 border-b border-slate-800 px-5 py-3 sticky top-0 z-30 flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <a href="index.html" class="bg-slate-800 hover:bg-slate-700 text-amber-400 font-bold text-xs px-3 py-1.5 rounded-xl border border-slate-700 flex items-center gap-1">
+        <i data-lucide="arrow-left" class="w-3.5 h-3.5"></i>
+        <span>Halaman Toko</span>
+      </a>
+      <span class="text-slate-600">|</span>
+      <div>
+        <h1 class="font-black text-sm text-white flex items-center gap-2">
+          <span>Kitchen Display System & POS</span>
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+        </h1>
+        <p class="text-[10px] text-slate-400" id="live-clock">--:-- WIB</p>
+      </div>
+    </div>
+
+    <div class="flex items-center gap-3 text-xs" id="admin-topbar-stats">
+      <div class="bg-slate-900 px-3 py-1 rounded-xl border border-slate-800">
+        <span class="text-slate-400 text-[10px] block">ANTREAN AKTIF:</span>
+        <strong id="kds-stat-active" class="text-amber-400 font-black">0 Pesanan</strong>
+      </div>
+      <div class="bg-slate-900 px-3 py-1 rounded-xl border border-slate-800">
+        <span class="text-slate-400 text-[10px] block">TOTAL OMZET:</span>
+        <strong id="kds-stat-omzet" class="text-emerald-400 font-black">Rp0</strong>
+      </div>
+      <button onclick="logoutAdmin()" class="bg-rose-950/60 hover:bg-rose-900 text-rose-300 font-bold px-3 py-1.5 rounded-xl text-xs">
+        Keluar
+      </button>
+    </div>
+  </header>
+
+  <!-- ================= LAYAR LOGIN PIN ADMIN ================= -->
+  <div id="admin-lock-screen" class="max-w-xs mx-auto mt-20 p-6 bg-slate-950 border border-slate-800 rounded-3xl text-center space-y-4 shadow-2xl">
+    <div class="w-12 h-12 bg-amber-500/10 text-amber-400 rounded-2xl flex items-center justify-center mx-auto text-xl font-bold">
+      <i data-lucide="lock" class="w-6 h-6"></i>
+    </div>
+    <div>
+      <h2 class="font-black text-base text-white">Login Staf & Kasir</h2>
+      <p class="text-xs text-slate-400 mt-1">Masukkan PIN Operasional (Default: <strong>123456</strong>)</p>
+    </div>
+    <input type="password" id="inp-admin-pin" placeholder="••••••" class="w-full p-3 bg-slate-900 border border-slate-700 rounded-2xl text-center text-xl font-mono font-bold tracking-widest text-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-400">
+    <button onclick="verifyAdminPin()" class="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-black py-3 rounded-2xl text-xs transition">
+      Buka Panel Kasir
+    </button>
+  </div>
+
+  <!-- ================= DASHBOARD STAF (SETELAH LOGIN) ================= -->
+  <div id="admin-main-screen" class="hidden">
+    <!-- Sub-Navigasi Tab -->
+    <div class="max-w-7xl mx-auto px-4 mt-3 flex gap-2 border-b border-slate-800 pb-2">
+      <button onclick="switchTab('orders')" id="tab-orders" class="px-4 py-2 font-black text-xs bg-amber-500 text-slate-950 rounded-xl">📋 Antrean Dapur & Kasir</button>
+      <button onclick="switchTab('menus')" id="tab-menus" class="px-4 py-2 font-bold text-xs bg-slate-800 text-slate-300 rounded-xl hover:bg-slate-700">🍲 Kelola Menu & Harga</button>
+      <button onclick="switchTab('settings')" id="tab-settings" class="px-4 py-2 font-bold text-xs bg-slate-800 text-slate-300 rounded-xl hover:bg-slate-700">⚙️ Pengaturan Toko & QRIS</button>
+    </div>
+
+    <!-- TAB 1: KITCHEN DISPLAY SYSTEM -->
+    <main id="view-tab-orders" class="max-w-7xl mx-auto px-4 mt-4">
+      <div class="flex justify-end mb-3">
+        <button onclick="exportOrdersToCSV()" class="bg-slate-800 hover:bg-slate-700 text-white font-bold px-3 py-1.5 rounded-xl text-xs flex items-center gap-1.5">
+          <i data-lucide="download" class="w-3.5 h-3.5"></i> Export Laporan (CSV)
+        </button>
+      </div>
+      <div id="kds-orders-container" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4"></div>
+    </main>
+
+    <!-- TAB 2: MANAJEMEN MENU (TAMBAH / EDIT) -->
+    <section id="view-tab-menus" class="max-w-5xl mx-auto px-4 mt-4 hidden space-y-4">
+      <div class="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-3">
+        <h3 class="font-extrabold text-sm text-amber-400" id="form-menu-mode">➕ Tambah Menu Baru</h3>
+        <input type="hidden" id="edit-prod-id">
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+          <input type="text" id="inp-prod-name" placeholder="Nama Menu *" class="p-2.5 bg-slate-900 border border-slate-700 rounded-xl">
+          <input type="text" id="inp-prod-cat" placeholder="Kategori (Coffee / Non-Coffee / Food) *" class="p-2.5 bg-slate-900 border border-slate-700 rounded-xl">
+          <input type="number" id="inp-prod-price" placeholder="Harga (Contoh: 24000) *" class="p-2.5 bg-slate-900 border border-slate-700 rounded-xl">
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+          <input type="text" id="inp-prod-img" placeholder="Link URL Foto (Unsplash/ImgBB) *" class="p-2.5 bg-slate-900 border border-slate-700 rounded-xl">
+          <input type="text" id="inp-prod-tags" placeholder="Kata Kunci Pencarian (kopi, aren, manis, best seller)" class="p-2.5 bg-slate-900 border border-slate-700 rounded-xl">
+        </div>
+        <input type="text" id="inp-prod-desc" placeholder="Deskripsi rasa singkat..." class="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-xl text-xs">
+        <div class="flex items-center justify-between pt-1">
+          <label class="flex items-center gap-2 text-xs font-bold text-amber-400 cursor-pointer">
+            <input type="checkbox" id="inp-prod-bestseller" class="rounded bg-slate-900">
+            <span>🔥 Tandai Sebagai Menu Best Seller</span>
+          </label>
+          <div class="flex gap-2 text-xs">
+            <button onclick="resetMenuForm()" class="bg-slate-800 text-slate-300 px-4 py-2 rounded-xl font-bold">Batal</button>
+            <button onclick="saveProductData()" class="bg-amber-500 hover:bg-amber-400 text-slate-950 px-5 py-2 rounded-xl font-black">Simpan Menu</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="space-y-2">
+        <h4 class="font-bold text-xs uppercase text-slate-500">Daftar Menu Aktif:</h4>
+        <div id="admin-product-table" class="space-y-2"></div>
+      </div>
+    </section>
+
+    <!-- TAB 3: OPERASIONAL & PENGATURAN TOKO -->
+    <section id="view-tab-settings" class="max-w-xl mx-auto px-4 mt-4 hidden space-y-4">
+      <div class="bg-slate-950 p-5 rounded-2xl border border-slate-800 space-y-3 text-xs">
+        <div>
+          <label class="font-bold text-slate-300 block mb-1">Status Buka/Tutup Toko</label>
+          <select id="set-store-status" class="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-xl font-bold text-white">
+            <option value="true">🟢 BUKA (Menerima Pesanan)</option>
+            <option value="false">🔴 TUTUP SEMENTARA</option>
+          </select>
+        </div>
+        <div>
+          <label class="font-bold text-slate-300 block mb-1">Jam Operasional (Tampil di Header)</label>
+          <input type="text" id="set-store-hours" placeholder="08:00 - 22:00 WIB" class="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-xl">
+        </div>
+        <div>
+          <label class="font-bold text-slate-300 block mb-1">URL Gambar Barcode QRIS Toko</label>
+          <input type="text" id="set-qris-image" class="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-xl font-mono text-[11px]">
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="font-bold text-slate-300 block mb-1">Nama Bank</label>
+            <input type="text" id="set-bank-name" class="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-xl">
+          </div>
+          <div>
+            <label class="font-bold text-slate-300 block mb-1">Nomor Rekening</label>
+            <input type="text" id="set-bank-acc" class="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-xl font-mono">
+          </div>
+        </div>
+        <div>
+          <label class="font-bold text-slate-300 block mb-1">Ganti PIN Admin Baru</label>
+          <input type="text" id="set-admin-pin" placeholder="123456" class="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-xl font-mono">
+        </div>
+        <button onclick="saveAdminSettings()" class="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-black py-3 rounded-xl transition">
+          Simpan Semua Pengaturan
+        </button>
+      </div>
+    </section>
+  </div>
+
+  <!-- ================= STRUK PRINT THERMAL 58MM ================= -->
+  <div id="thermal-receipt" class="hidden">
+    <div style="text-align: center; border-bottom: 1px dashed #000; padding-bottom: 4px; margin-bottom: 6px;">
+      <h2 style="font-weight: bold; font-size: 13px;">TITIK TEMU COFFEE</h2>
+      <p id="prn-time">28/10/2026 20:51</p>
+      <p id="prn-order-id" style="font-weight: bold;">#ORD-0000</p>
+      <p id="prn-location" style="font-weight: bold; background: #000; color: #fff; padding: 2px;">MEJA 04</p>
+    </div>
+    <div style="margin-bottom: 6px;">
+      <p>Cust : <span id="prn-cust-name">-</span></p>
+      <p>Telp : <span id="prn-cust-phone">-</span></p>
+      <p>Email: <span id="prn-cust-email">-</span></p>
+      <p id="prn-notes-box">Note : <span id="prn-cust-notes">-</span></p>
+    </div>
+    <table style="width: 100%; border-bottom: 1px dashed #000; padding-bottom: 4px; margin-bottom: 4px;">
+      <tbody id="prn-items-body"></tbody>
+    </table>
+    <div style="text-align: right; line-height: 1.4;">
+      <p>Subtotal: <span id="prn-subtotal">Rp0</span></p>
+      <p>Diskon: <span id="prn-discount">Rp0</span></p>
+      <p style="font-size: 13px; font-weight: bold;">TOTAL: <span id="prn-total">Rp0</span></p>
+      <p style="font-size: 9px;">Metode: NON-TUNAI (LUNAS)</p>
+    </div>
+    <div style="text-align: center; margin-top: 10px; font-size: 9px;">
+      Wifi: TitikTemu_Free<br>
+      Pass: kopienak123<br>
+      Terima Kasih!
+    </div>
+  </div>
+
+  <script src="js/admin.js"></script>
+</body>
+</html>
